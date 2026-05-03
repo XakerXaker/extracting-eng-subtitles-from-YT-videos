@@ -18,7 +18,7 @@ pip install pytubefix
 3. Запустите скрипт:
 
 ```bash
-python script.py
+python main.py
 ```
 
 ## Как это работает
