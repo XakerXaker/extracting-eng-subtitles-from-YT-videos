@@ -1,25 +1,40 @@
+import time
+
 from pytubefix import YouTube
 
 url = "YourYTVideoUrl"
 
-video = YouTube(url)
+ATTEMPTS = 5
+PAUSE_SECONDS = 10
 
-eng_subtitle = None
-try:
-    for available_subtitle in video.captions:
-        if "en" in available_subtitle.code:
-            eng_subtitle = available_subtitle.code
-            break
 
-except Exception as e:
-    print("Не удалось достучаться до видео")
+def fetch_subtitles(url):
+    codes = []
+    for attempt in range(ATTEMPTS):
+        try:
+            video = YouTube(url, client="WEB")
+            codes = [caption.code for caption in video.captions]
+            if codes:
+                eng_code = next((code for code in codes if "en" in code), None)
+                if eng_code is None:
+                    return None, True
+                return video.captions[eng_code].generate_txt_captions(), True
+        except Exception:
+            pass
+        if attempt < ATTEMPTS - 1:
+            time.sleep(PAUSE_SECONDS)
+    return None, False
+
+
+captions, youtube_responded = fetch_subtitles(url)
+
+if not youtube_responded:
+    print("YouTube не отдал данные о субтитрах. Попробуйте позже")
     exit(1)
 
-captions = None
-if eng_subtitle is not None:
-    captions = video.captions[eng_subtitle].generate_txt_captions()
-    if captions is not None:
-        with open("subtitles.txt", "w", encoding="utf-8") as file:
-            file.write(captions)
-else:
+if captions is None:
     print("Английские субтитры не были найдены :( ")
+    exit(0)
+
+with open("subtitles.txt", "w", encoding="utf-8") as file:
+    file.write(captions)
